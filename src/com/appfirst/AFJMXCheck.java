@@ -46,6 +46,30 @@ public class AFJMXCheck {
 	private final String argumentSequenceSeparator = ",";
 	private final String cacheFileName = "AFJMXCheckData";
 	private HashMap<String, Long> cachedData = new HashMap<String, Long>();
+	private ArrayList<AFJMXQueryResult> resultList = new ArrayList<AFJMXQueryResult>();
+
+	public String getCacheFileName() {
+		return cacheFileName;
+	}
+	public MBeanServerConnection getConnection() {
+		return connection;
+	}
+
+	public void setConnection(MBeanServerConnection connection) {
+		this.connection = connection;
+	}
+
+	public HashMap<String, Long> getCachedData() {
+		return cachedData;
+	}
+
+	public void setCachedData(HashMap<String, Long> cachedData) {
+		this.cachedData = cachedData;
+	}
+	
+	public ArrayList<AFJMXQueryResult> getResultList() {
+		return resultList;
+	}
 
 	/**
 	 * Connect to JMX
@@ -77,7 +101,8 @@ public class AFJMXCheck {
 	/**
 	 * Read the cache data from previous running result.
 	 */
-	private void readCacheData() {
+	public void readCacheData() {
+		this.cachedData.clear();
 		try {
 			BufferedReader input = new BufferedReader(new FileReader(
 					cacheFileName));
@@ -109,7 +134,7 @@ public class AFJMXCheck {
 	 * @param cacheString
 	 *            a list of parameter_name value separated by new line charater.
 	 */
-	private void writeCacheData(String cacheString) {
+	public void writeCacheData(String cacheString) {
 		try {
 			Writer out = new OutputStreamWriter(new FileOutputStream(
 					this.cacheFileName), "UTF-8");
@@ -123,10 +148,14 @@ public class AFJMXCheck {
 		}
 	}
 
+	/**
+	 * 
+	 * @param args all the arguments in user's original input. 
+	 */
 	public void runCheck(String[] args) {
 		int length = args.length;
 		int start = 2;
-		ArrayList<AFJMXQueryResult> resultList = new ArrayList<AFJMXQueryResult>();
+		
 		readCacheData();
 		String cacheString = "";
 		while (start < length) {
@@ -140,13 +169,13 @@ public class AFJMXCheck {
 				end++;
 			}
 			AFJMXQuery query = new AFJMXQuery();
-			for (int i = start; i <= end - 1; i += 2) {// parse parameters
+			for (int i = start; i <= end - 1; i += 2) {// parse and parameters
 				String paramName = args[i];
 				String paramValue = args[i + 1].replace(
 						this.argumentSequenceSeparator, "");
 				if (paramName.equals("-O")) {
 					query.setBeanName(paramValue);
-				} else if (paramName.equals("-A")) {
+				} else if (paramName.equals("-A")) {// attribute key
 					query.setAttribute(paramValue);
 				} else if (paramName.equals("-I")) {
 					query.setInfoAttribute(paramValue);
@@ -156,11 +185,11 @@ public class AFJMXCheck {
 					query.setAttributeKey(paramValue);
 				} else if (paramName.startsWith("-v")) {
 					query.setVerbatim(Integer.parseInt(paramValue));
-				} else if (paramName.equals("-w")) {
+				} else if (paramName.equals("-w")) {// warning
 					query.setWarningThreshold(Double.parseDouble(paramValue));
-				} else if (paramName.equals("-c")) {
+				} else if (paramName.equals("-c")) {// critical
 					query.setCriticalThreshold(Double.parseDouble(paramValue));
-				} else if (paramName.equals("-T")) {
+				} else if (paramName.equals("-T")) {// value type
 					query.setValueType(Integer.parseInt(paramValue));
 				}
 			}
@@ -190,37 +219,42 @@ public class AFJMXCheck {
 	}
 
 	/**
-	 * Export to nagios format. 
-	 * @param list a list of JMXQueryResult
+	 * Export to nagios format.
+	 * 
+	 * @param list
+	 *            a list of JMXQueryResult
 	 */
 	private void summarize(ArrayList<AFJMXQueryResult> list) {
 		int finalStatus = -1;
-		String finalString = "";
+		String finalStatusString = "";
 
 		for (int cnt = 0; cnt < list.size(); cnt++) {
 			AFJMXQueryResult result = list.get(cnt);
+			// increase the status if any warning, critical. 
+			// 0 means OK, -1 is unknown. 
 			if (result.getStatus() > finalStatus) {
 				finalStatus = result.getStatus();
 			}
-			finalString += (result.toString() + " ");
+			finalStatusString += (result.toString() + " ");// concatenate all the
+															// status string
+															// together
 		}
 
 		if (finalStatus == AFJMXQueryResult.RETURN_OK) {
-			finalString = String.format("%s | %s", AFJMXQueryResult.OK_STRING,
-					finalString);
+			finalStatusString = String.format("%s | %s",
+					AFJMXQueryResult.OK_STRING, finalStatusString);
 		} else if (finalStatus == AFJMXQueryResult.RETURN_WARNING) {
-			finalString = String.format("%s | %s",
-					AFJMXQueryResult.WARNING_STRING, finalString);
+			finalStatusString = String.format("%s | %s",
+					AFJMXQueryResult.WARNING_STRING, finalStatusString);
 		} else if (finalStatus == AFJMXQueryResult.RETURN_CRITICAL) {
-			finalString = String.format("%s | %s",
-					AFJMXQueryResult.CRITICAL_STRING, finalString);
+			finalStatusString = String.format("%s | %s",
+					AFJMXQueryResult.CRITICAL_STRING, finalStatusString);
 		} else {
-			finalString = String.format("%s | %s",
-					AFJMXQueryResult.UNKNOWN_STRING, finalString);
+			finalStatusString = String.format("%s | %s",
+					AFJMXQueryResult.UNKNOWN_STRING, finalStatusString);
 		}
 
-		System.out.println(finalString);
-
+		System.out.println(finalStatusString); // print the status string. 
 	}
 
 	public static void main(String[] args) {

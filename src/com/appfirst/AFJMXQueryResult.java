@@ -65,8 +65,18 @@ public class AFJMXQueryResult {
 	private Long statusValue;
 	private Long currentStatusValue;
 	private Long previousStatusValue = 0L;
+	
+	
+	public AFJMXQuery getOriginalQuery() {
+		return originalQuery;
+	}
+	
 	public Long getPreviousStatusValue() {
 		return previousStatusValue;
+	}
+	
+	public Long getStatusValue() {
+		return statusValue;
 	}
 
 	public void setPreviousStatusValue(HashMap<String, Long> valueMap) {
@@ -86,7 +96,7 @@ public class AFJMXQueryResult {
 		this.status = status;
 	}
 
-		public Object getDetailStatus() {
+	public Object getDetailStatus() {
 		return detailStatus;
 	}
 
@@ -96,6 +106,10 @@ public class AFJMXQueryResult {
 
 	public Object getStatusData() {
 		return statusData;
+	}
+	
+	public Long getCurrentStatusValue() {
+		return currentStatusValue;
 	}
 	
 	/**
