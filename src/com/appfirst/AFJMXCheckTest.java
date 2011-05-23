@@ -35,6 +35,7 @@ import org.junit.Assert;
  */
 public class AFJMXCheckTest {
 	private AFJMXCheck checkJMX;
+	private AFJMXCheck checkJMX2;
 
 	/**
 	 * @throws java.lang.Exception
@@ -43,6 +44,9 @@ public class AFJMXCheckTest {
 	public void setUp() throws Exception {
 		checkJMX = new AFJMXCheck();
 		checkJMX
+				.initConnection("service:jmx:rmi:///jndi/rmi://localhost:3333/jmxrmi");
+		checkJMX2 = new AFJMXCheck();
+		checkJMX2
 				.initConnection("service:jmx:rmi:///jndi/rmi://localhost:3333/jmxrmi");
 
 	}
@@ -53,7 +57,9 @@ public class AFJMXCheckTest {
 	@After
 	public void tearDown() throws Exception {
 		checkJMX.disconnect();
+		checkJMX2.disconnect();
 	}
+	
 
 	@Test
 	public void testRunCheck() {
@@ -105,12 +111,11 @@ public class AFJMXCheckTest {
 		checkJMX.readCacheData();
 		Assert.assertEquals(1, checkJMX.getCachedData().size());
 		Assert.assertTrue(checkJMX.getCachedData().containsKey("java.lang:type=Memory.HeapMemoryUsage.used")); 
-		
 		Long previousValue = checkJMX.getCachedData().get("java.lang:type=Memory.HeapMemoryUsage.used");
-		checkJMX.runCheck(args);
-		Assert.assertEquals(1, checkJMX.getCachedData().size());
-		Assert.assertTrue(checkJMX.getCachedData().containsKey("java.lang:type=Memory.HeapMemoryUsage.used"));
-		result2 = checkJMX.getResultList().get(1);
+		checkJMX2.runCheck(args);
+		Assert.assertEquals(1, checkJMX2.getCachedData().size());
+		Assert.assertTrue(checkJMX2.getCachedData().containsKey("java.lang:type=Memory.HeapMemoryUsage.used"));
+		result2 = checkJMX2.getResultList().get(1);
 		Assert.assertEquals(result2.getStatusValue() - 0L, result2.getCurrentStatusValue() - previousValue);
 	}
 

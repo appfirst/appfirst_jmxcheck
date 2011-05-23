@@ -169,14 +169,6 @@ public class AFJMXQueryResult {
 	public AFJMXQueryResult(AFJMXQuery query) {
 		originalQuery = query;
 	}
-
-	/**
-	 * Export to nagios format. 
-	 * @return nagios formatted string based on query result. 
-	 */
-	public String toFullString() {
-		return String.format("%s | %s", this.statusString, this.toString());
-	}
 	
 	
 	/**
@@ -185,8 +177,6 @@ public class AFJMXQueryResult {
 	 */
 	public String toString() {
 		String ret = "";
-		if (this.statusData == null)
-			return ret;
 		ret = String.format("%s=%d", this.originalQuery.getName(),
 				this.statusValue);
 		return ret;

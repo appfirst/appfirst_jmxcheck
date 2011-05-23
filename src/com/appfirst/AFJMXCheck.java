@@ -43,8 +43,8 @@ import javax.management.remote.JMXServiceURL;
 public class AFJMXCheck {
 	private JMXConnector connector;
 	private MBeanServerConnection connection;
-	private final String argumentSequenceSeparator = ",";
-	private final String cacheFileName = "AFJMXCheckData";
+	private final String argumentSequenceSeparator = ";";
+	private final String cacheFileName = "/usr/share/appfirst/plugins/AFJMXCheckData";
 	private HashMap<String, Long> cachedData = new HashMap<String, Long>();
 	private ArrayList<AFJMXQueryResult> resultList = new ArrayList<AFJMXQueryResult>();
 
@@ -124,7 +124,7 @@ public class AFJMXCheck {
 			// File not found, just ignore
 		} catch (IOException e) {
 			// permission issue?
-			e.printStackTrace();
+			
 		}
 	}
 
@@ -144,7 +144,7 @@ public class AFJMXCheck {
 				out.close();
 			}
 		} catch (IOException ioe) {
-			ioe.printStackTrace();
+			
 		}
 	}
 
@@ -193,14 +193,16 @@ public class AFJMXCheck {
 					query.setValueType(Integer.parseInt(paramValue));
 				}
 			}
-			AFJMXQueryResult result;
+			AFJMXQueryResult result = null;
 			try {
 				result = query.getAttribute(connection);
 				result.setPreviousStatusValue(this.cachedData);
 				resultList.add(result);
 				cacheString += result.toCacheString();
 			} catch (Exception e) {
-				e.printStackTrace();
+				result = new AFJMXQueryResult(query);
+				result.setStatus(AFJMXQueryResult.RETURN_CRITICAL);
+				resultList.add(result);
 			}
 			start = end + 1;
 			if (start < length
