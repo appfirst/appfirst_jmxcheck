@@ -43,9 +43,11 @@ public class AFJMXCheckTest {
 	@Before
 	public void setUp() throws Exception {
 		checkJMX = new AFJMXCheck();
+		checkJMX.setCacheFileName("AFJMXCheckData");
 		checkJMX
 				.initConnection("service:jmx:rmi:///jndi/rmi://localhost:3333/jmxrmi");
 		checkJMX2 = new AFJMXCheck();
+		checkJMX2.setCacheFileName("AFJMXCheckData");
 		checkJMX2
 				.initConnection("service:jmx:rmi:///jndi/rmi://localhost:3333/jmxrmi");
 
@@ -63,7 +65,7 @@ public class AFJMXCheckTest {
 
 	@Test
 	public void testRunCheck() {
-		String argString = "test classname -U service:jmx:rmi:///jndi/rmi://localhost:3333/jmxrmi -O java.lang:type=Memory -A NonHeapMemoryUsage -K max, -O java.lang:type=Memory -A HeapMemoryUsage -K used -T 1, -O java.lang:type=Memory -A NonHeapMemoryUsage -K committed, -O java.lang:type=Threading -A ThreadCount, -O java.lang:type=Threading -A TotalStartedThreadCount";
+		String argString = "test classname -U service:jmx:rmi:///jndi/rmi://localhost:3333/jmxrmi -O java.lang:type=Memory -A NonHeapMemoryUsage -K max; -O java.lang:type=Memory -A HeapMemoryUsage -K used -T 1; -O java.lang:type=Memory -A NonHeapMemoryUsage -K committed; -O java.lang:type=Threading -A ThreadCount; -O java.lang:type=Threading -A TotalStartedThreadCount";
 		String[] args = argString.split(" ");
 		File file = new File(checkJMX.getCacheFileName());
 		file.delete();
@@ -184,6 +186,17 @@ public class AFJMXCheckTest {
 				.get("b").toString()), 200L);
 		Assert.assertEquals("", Long.parseLong(checkJMX.getCachedData()
 				.get("c").toString()), 1L);
+		
+		String argString = "test classname -U service:jmx:rmi:///jndi/rmi://localhost:3333/jmxrmi -O java.lang:type=Memory -A NonHeapMemoryUsage -K max; -O java.lang:type=Memory -A HeapMemoryUsage -K used -T 1; -O java.lang:type=Memory -A NonHeapMemoryUsage -K committed; -O java.lang:type=Threading -A ThreadCount; -O java.lang:type=Threading -A TotalStartedThreadCount";
+		String[] args = argString.split(" ");
+		checkJMX.runCheck(args);
+		checkJMX.readCacheData();
+		
+		Assert.assertEquals("Not keeping the cache correctly.", checkJMX
+				.getCachedData().size(), 4);
+		Assert.assertTrue(checkJMX.getCachedData().containsKey("a"));
+		Assert.assertTrue(checkJMX.getCachedData().containsKey("b"));
+		Assert.assertTrue(checkJMX.getCachedData().containsKey("c"));
+		Assert.assertTrue(checkJMX.getCachedData().containsKey("java.lang:type=Memory.HeapMemoryUsage.used"));
 	}
-
 }

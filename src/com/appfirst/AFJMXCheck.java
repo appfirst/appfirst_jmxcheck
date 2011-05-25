@@ -27,6 +27,8 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 import javax.management.MBeanServerConnection;
 import javax.management.remote.JMXConnector;
@@ -37,6 +39,8 @@ import javax.management.remote.JMXServiceURL;
  * This class is used to connect JMX and getting the performance data defined by
  * user's command line.
  * 
+ * This class is not thread-safe because it doesn't check concurrent access to
+ * the cache data file. 
  * @author Bin Liu
  * 
  */
@@ -44,13 +48,18 @@ public class AFJMXCheck {
 	private JMXConnector connector;
 	private MBeanServerConnection connection;
 	private final String argumentSequenceSeparator = ";";
-	private final String cacheFileName = "/usr/share/appfirst/plugins/AFJMXCheckData";
+	private String cacheFileName = "/usr/share/appfirst/plugins/AFJMXCheckData";
 	private HashMap<String, Long> cachedData = new HashMap<String, Long>();
 	private ArrayList<AFJMXQueryResult> resultList = new ArrayList<AFJMXQueryResult>();
 
 	public String getCacheFileName() {
 		return cacheFileName;
 	}
+
+	public void setCacheFileName(String filename) {
+		this.cacheFileName = filename;
+	}
+
 	public MBeanServerConnection getConnection() {
 		return connection;
 	}
@@ -66,7 +75,7 @@ public class AFJMXCheck {
 	public void setCachedData(HashMap<String, Long> cachedData) {
 		this.cachedData = cachedData;
 	}
-	
+
 	public ArrayList<AFJMXQueryResult> getResultList() {
 		return resultList;
 	}
@@ -124,15 +133,41 @@ public class AFJMXCheck {
 			// File not found, just ignore
 		} catch (IOException e) {
 			// permission issue?
-			
+
 		}
+	}
+	
+	/**
+	 * Create the cache string which'll be writen to the file
+	 * from the current query result and the previous result.
+	 *  
+	 * @return the cached data string. 
+	 */
+	private String generateCacheString() {
+		String cacheString = "";
+		HashMap<String, Integer> map = new HashMap<String, Integer>();
+		for (int cnt = 0; cnt < this.resultList.size(); cnt++) {// write all the new result
+			String key = this.resultList.get(cnt).getOriginalQuery().getName();
+			cacheString += this.resultList.get(cnt).toCacheString();
+			map.put(key, 1);
+		}
+
+		Iterator it = cachedData.entrySet().iterator();
+		while (it.hasNext()) {// write all the keys that not in the new result
+								// back to cache file
+			Map.Entry pairs = (Map.Entry) it.next();
+			if (!map.containsKey(pairs.getKey())) {
+				cacheString += (String.format("%s %s\n", pairs.getKey(), pairs
+						.getValue()));
+			}
+		}
+		return cacheString;
 	}
 
 	/**
 	 * Write current cache data into a flat file.
 	 * 
-	 * @param cacheString
-	 *            a list of parameter_name value separated by new line charater.
+	 * @param the cached data string. 
 	 */
 	public void writeCacheData(String cacheString) {
 		try {
@@ -144,20 +179,20 @@ public class AFJMXCheck {
 				out.close();
 			}
 		} catch (IOException ioe) {
-			
+
 		}
 	}
 
 	/**
 	 * 
-	 * @param args all the arguments in user's original input. 
+	 * @param args
+	 *            all the arguments in user's original input.
 	 */
 	public void runCheck(String[] args) {
 		int length = args.length;
 		int start = 2;
-		
+
 		readCacheData();
-		String cacheString = "";
 		while (start < length) {
 			int end = start;
 			while (end < length && args[end] != argumentSequenceSeparator
@@ -198,7 +233,7 @@ public class AFJMXCheck {
 				result = query.getAttribute(connection);
 				result.setPreviousStatusValue(this.cachedData);
 				resultList.add(result);
-				cacheString += result.toCacheString();
+				// cacheString += result.toCacheString();
 			} catch (Exception e) {
 				result = new AFJMXQueryResult(query);
 				result.setStatus(AFJMXQueryResult.RETURN_CRITICAL);
@@ -217,7 +252,7 @@ public class AFJMXCheck {
 		}
 
 		this.summarize(resultList);
-		writeCacheData(cacheString);
+		writeCacheData(this.generateCacheString());
 	}
 
 	/**
@@ -229,19 +264,20 @@ public class AFJMXCheck {
 	private void summarize(ArrayList<AFJMXQueryResult> list) {
 		int finalStatus = -1;
 		String finalStatusString = "";
-
-		for (int cnt = 0; cnt < list.size(); cnt++) {
+		for (int cnt = 0; cnt < list.size(); cnt++) {// for each parameter
 			AFJMXQueryResult result = list.get(cnt);
-			// increase the status if any warning, critical. 
-			// 0 means OK, -1 is unknown. 
+			// increase the status if any warning, critical.
+			// 0 means OK, -1 is unknown.
 			if (result.getStatus() > finalStatus) {
 				finalStatus = result.getStatus();
 			}
-			finalStatusString += (result.toString() + " ");// concatenate all the
-															// status string
-															// together
+			finalStatusString += (result.toString() + " ");// concatenate all
+			// the
+			// status string
+			// together
 		}
 
+		// generate the final status string.
 		if (finalStatus == AFJMXQueryResult.RETURN_OK) {
 			finalStatusString = String.format("%s | %s",
 					AFJMXQueryResult.OK_STRING, finalStatusString);
@@ -256,7 +292,8 @@ public class AFJMXCheck {
 					AFJMXQueryResult.UNKNOWN_STRING, finalStatusString);
 		}
 
-		System.out.println(finalStatusString); // print the status string. 
+		System.out.println(finalStatusString); // print the status to be used by
+		// collector
 	}
 
 	public static void main(String[] args) {
@@ -284,7 +321,7 @@ public class AFJMXCheck {
 
 	private static void printHelp(PrintStream out) {
 		InputStream is = AFJMXCheck.class.getClassLoader().getResourceAsStream(
-				"org/nagios/Help.txt");
+				"com/appfirst/Help.txt");
 		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
 		try {
 			while (true) {
