@@ -113,7 +113,7 @@ public class AFJMXCheckTest {
 		checkJMX.readCacheData();
 		Assert.assertEquals(1, checkJMX.getCachedData().size());
 		Assert.assertTrue(checkJMX.getCachedData().containsKey("java.lang:type=Memory.HeapMemoryUsage.used")); 
-		Long previousValue = checkJMX.getCachedData().get("java.lang:type=Memory.HeapMemoryUsage.used");
+		Double previousValue = checkJMX.getCachedData().get("java.lang:type=Memory.HeapMemoryUsage.used");
 		checkJMX2.runCheck(args);
 		Assert.assertEquals(1, checkJMX2.getCachedData().size());
 		Assert.assertTrue(checkJMX2.getCachedData().containsKey("java.lang:type=Memory.HeapMemoryUsage.used"));

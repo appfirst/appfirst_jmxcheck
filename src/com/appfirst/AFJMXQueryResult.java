@@ -62,24 +62,25 @@ public class AFJMXQueryResult {
 	private Object statusData;
 	private AFJMXQuery originalQuery;
 	private String statusString = UNKNOWN_STRING;
-	private Long statusValue;
-	private Long currentStatusValue;
-	private Long previousStatusValue = 0L;
+	private Double statusValue;
+	private Double currentStatusValue;
+	private Double previousStatusValue = 0.0;
+	private String stringValue;
 	
 	
 	public AFJMXQuery getOriginalQuery() {
 		return originalQuery;
 	}
 	
-	public Long getPreviousStatusValue() {
+	public Double getPreviousStatusValue() {
 		return previousStatusValue;
 	}
 	
-	public Long getStatusValue() {
+	public Double getStatusValue() {
 		return statusValue;
 	}
 
-	public void setPreviousStatusValue(HashMap<String, Long> valueMap) {
+	public void setPreviousStatusValue(HashMap<String, Double> valueMap) {
 		if (valueMap.containsKey(this.originalQuery.getName())) {
 			previousStatusValue = valueMap.get(this.originalQuery.getName());
 			this.recalculateStatusValue();
@@ -108,7 +109,7 @@ public class AFJMXQueryResult {
 		return statusData;
 	}
 	
-	public Long getCurrentStatusValue() {
+	public Double getCurrentStatusValue() {
 		return currentStatusValue;
 	}
 	
@@ -116,7 +117,11 @@ public class AFJMXQueryResult {
 	 * Status can be OK, Warning or Critical. 
 	 */
 	private void setStatusString() {
-		if (statusValue < this.originalQuery.getWarningThreshold().longValue()) {
+		if (statusValue == null) {
+			this.statusString = AFJMXQueryResult.OK_STRING;
+			this.status = 0;
+		}
+		else if (statusValue < this.originalQuery.getWarningThreshold().longValue()) {
 			this.statusString = AFJMXQueryResult.OK_STRING;
 			this.status = 0;
 		} else if (statusValue < this.originalQuery.getCriticalThreshold().longValue()){
@@ -137,13 +142,15 @@ public class AFJMXQueryResult {
 		if (statusData instanceof CompositeDataSupport) {
 			CompositeDataSupport cds = (CompositeDataSupport) statusData;
 			if (this.originalQuery.getAttribute() == null) {
-				statusValue = -1L; // no attribute key
+				statusValue = -1.0; // no attribute key
 			} else {
-				statusValue = Long.parseLong(cds.get(
+				statusValue = Double.parseDouble(cds.get(
 						this.originalQuery.getAttributeKey()).toString());
 			}
-		} else {
-			statusValue = Long.parseLong(statusData.toString());
+		} else if (statusData instanceof String) {
+		}
+		else {
+			statusValue = Double.parseDouble(statusData.toString());
 		}
 		currentStatusValue = statusValue;
 		setStatusString();
@@ -156,7 +163,7 @@ public class AFJMXQueryResult {
 		if (this.originalQuery.getValueType() == AFJMXQuery.cumulativeValueType) {
 			statusValue = currentStatusValue - previousStatusValue;
 			if (statusValue < 0) {
-				statusValue = 0L;
+				statusValue = 0.0;
 			}
 			previousStatusValue = currentStatusValue;
 		}
@@ -177,8 +184,14 @@ public class AFJMXQueryResult {
 	 */
 	public String toString() {
 		String ret = "";
-		ret = String.format("%s=%d", this.originalQuery.getName(),
-				this.statusValue);
+		if (statusValue != null) {
+			ret = String.format("%s=%f", this.originalQuery.getName(),
+					this.statusValue);
+		} else {
+			ret = String.format("%s=%s", this.originalQuery.getName(),
+					statusData);
+			
+		}
 		return ret;
 	}
 	
@@ -188,7 +201,7 @@ public class AFJMXQueryResult {
 	 */
 	public String toCacheString() {
 		if (this.originalQuery.getValueType() == AFJMXQuery.cumulativeValueType) {
-			return String.format("%s %d\n", this.originalQuery.getName(), this.currentStatusValue);
+			return String.format("%s %f\n", this.originalQuery.getName(), this.currentStatusValue);
 		} else {
 			return "";
 		}		

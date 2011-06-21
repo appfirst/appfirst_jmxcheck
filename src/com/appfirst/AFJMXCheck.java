@@ -47,9 +47,9 @@ import javax.management.remote.JMXServiceURL;
 public class AFJMXCheck {
 	private JMXConnector connector;
 	private MBeanServerConnection connection;
-	private final String argumentSequenceSeparator = ";";
+	private final String argumentSequenceSeparator = "#";
 	private String cacheFileName = "/usr/share/appfirst/plugins/AFJMXCheckData";
-	private HashMap<String, Long> cachedData = new HashMap<String, Long>();
+	private HashMap<String, Double> cachedData = new HashMap<String, Double>();
 	private ArrayList<AFJMXQueryResult> resultList = new ArrayList<AFJMXQueryResult>();
 
 	public String getCacheFileName() {
@@ -68,11 +68,11 @@ public class AFJMXCheck {
 		this.connection = connection;
 	}
 
-	public HashMap<String, Long> getCachedData() {
+	public HashMap<String, Double> getCachedData() {
 		return cachedData;
 	}
 
-	public void setCachedData(HashMap<String, Long> cachedData) {
+	public void setCachedData(HashMap<String, Double> cachedData) {
 		this.cachedData = cachedData;
 	}
 
@@ -122,7 +122,7 @@ public class AFJMXCheck {
 					if (values.length < 2) {
 						continue;
 					}
-					cachedData.put(values[0], Long.parseLong(values[1]));
+					cachedData.put(values[0], Double.parseDouble(values[1]));
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
